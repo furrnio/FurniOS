@@ -57,7 +57,6 @@ SRC = \
 	arch/armv7/boot.s \
 	arch/armv7/handlers.c \
 	arch/armv7/handlers_asm.S \
-	arch/armv7/init_stack.S \
 	arch/armv7/vectors.S \
 	board/rpi2b/uart.c \
 	board/rpi2b/status_led.c \
