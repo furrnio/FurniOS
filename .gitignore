@@ -1,3 +1,4 @@
 .DS_Store
+.DS_Store~
 build/
 tools/tests_int/__pycache__

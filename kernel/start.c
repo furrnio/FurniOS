@@ -42,8 +42,8 @@ static void do_prefetch_abort(void);
 static void do_supervisor_call(void);
 static void do_undefined_inst(void);
 
-void start_kernel [[noreturn]] (void) {
-
+void start_kernel [[noreturn]] (void) 
+{
     status_on();
     kprintf("Status led switched on...\n");
 
