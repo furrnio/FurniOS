@@ -1,6 +1,9 @@
 #include "kernel/kprintf.h"
 #include "drivers/uart.h"
+#include "drivers/timer.h"
 #include "stdbool.h"
+
+bool irq_debug = false;
 
 static void do_data_abort(void);
 static void do_prefetch_abort(void);
@@ -8,9 +11,15 @@ static void do_supervisor_call(void);
 static void do_undefined_inst(void);
 
 void start_kernel [[noreturn]] (void) {
-	kprintf("=== FurniOS booted ===\n");
 
-    bool irq_debug = false;
+    timer_init();
+    kprintf("Timer initialized...\n");
+
+    // Enable interrupts
+    asm volatile ("cpsie if");
+    kprintf("Interrupts enabled...\n");
+
+	kprintf("=== FurniOS booted ===\n");
 
 	while(true) {
 		char c = uart_getc();

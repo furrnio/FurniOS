@@ -13,7 +13,6 @@ undef_handler:
 
     // Save USER context onto SVC stack
     push    {r0-r12}
-    #sub     lr, lr, #4
     push    {lr}
     mrs     r1, lr_usr
     push    {r1}
@@ -42,7 +41,6 @@ svc_handler:
 
     // Save USER context onto SVC stack
     push    {r0-r12}
-    #sub     lr, lr, #4
     push    {lr}
     mrs     r1, lr_usr
     push    {r1}
@@ -71,7 +69,6 @@ prefetch_abort:
 
     // Save USER context onto SVC stack
     push    {r0-r12}
-    #sub     lr, lr, #4
     push    {lr}
     mrs     r1, lr_usr
     push    {r1}
@@ -129,7 +126,7 @@ irq:
 
     // Save USER context onto SVC stack
     push    {r0-r12}
-    #sub     lr, lr, #4
+    sub     lr, lr, #4
     push    {lr}
     mrs     r1, lr_usr
     push    {r1}
@@ -158,7 +155,6 @@ fiq:
 
     // Save USER context onto SVC stack
     push    {r0-r12}
-    #sub     lr, lr, #4
     push    {lr}
     mrs     r1, lr_usr
     push    {r1}

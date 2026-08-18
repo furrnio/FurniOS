@@ -1,8 +1,12 @@
+#include <drivers/timer.h>
 #include <kernel/kprintf.h>
 #include <kernel/exception_print.h>
 #include <kernel/log.h>
 #include <stdint.h>
 #include <stdbool.h>
+
+#define INTERRUPT_BASE  0x3F00B000
+#define IRQ_PENDING1    (INTERRUPT_BASE + 0x204)
 
 // TODO Später in scheduler.h
 typedef struct {
@@ -18,6 +22,8 @@ extern uint32_t* handle_svc(uint32_t *sp);
 extern uint32_t* handle_prefetch_abort(uint32_t *sp);
 extern uint32_t* handle_data_abort(uint32_t *sp);
 extern uint32_t* handle_irq(uint32_t *sp);
+
+extern volatile bool irq_debug;
 
 static void _save_exception_infos(uint32_t *sp, 
                                   struct exception_infos *infos)
@@ -95,7 +101,6 @@ static void _save_exception_infos(uint32_t *sp,
     }
 }
 
-// TODO Assembler muss sp und struct richtig übergeben !!
 uint32_t* handle_undef(uint32_t *sp)
 {
     struct exception_infos infos = { 0 };          
@@ -158,7 +163,16 @@ uint32_t* handle_irq(uint32_t *sp)
     infos.is_data_abort = false;
     infos.is_prefetch_abort = true;
     _save_exception_infos(sp, &infos);
-    print_exception_infos(&infos);
+    
+    uint32_t pending1 = *(volatile uint32_t*)(IRQ_PENDING1);
+
+    if (pending1 & (1 << 1)) {
+        timer_irq_handler();
+    }
+
+    if (irq_debug) {
+        print_exception_infos(&infos);
+    }
 
     return sp;
 }
