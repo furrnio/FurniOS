@@ -40,21 +40,25 @@ struct mode_regs {
     uint32_t cpsr;
     uint32_t lr_usr;
     uint32_t sp_usr;
+
     uint32_t lr_irq;
     uint32_t sp_irq;
     uint32_t spsr_irq;
+
     uint32_t lr_abt;
     uint32_t sp_abt;
     uint32_t spsr_abt;
+
     uint32_t lr_und;
     uint32_t sp_und;
     uint32_t spsr_und;
+
     uint32_t lr_svc;
     uint32_t sp_svc;
     uint32_t spsr_svc;
 };
 
-void print_exception_infos(struct exception_infos* infos);
+void print_exception_infos(struct exception_infos *infos);
 
 struct mode_regs read_mode_specific_registers(void);
 

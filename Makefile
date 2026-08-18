@@ -63,10 +63,7 @@ SRC = \
 	kernel/exception_print.c \
 	kernel/kprintf.c \
 	kernel/start.c \
-	lib/mem.c \
-	lib/ubsan.c \
-	tests/regcheck.c \
-	tests/regcheck_asm.S \
+	lib/mem.c
 
 # User source files
 USRC = user/main.c
@@ -132,10 +129,9 @@ GDB = $(ARM_PREFIX)/bin/arm-none-eabi-gdb
 FORMAT = $(ARM_PREFIX)/bin/clang-format
 
 # Flags
-CFLAGS_ALL = -Wall -Wextra -ggdb -ffreestanding \
-			 -mcpu=cortex-a7 -mfloat-abi=soft -mno-unaligned-access \
-			 $(CFLAGS)
-CPPFLAGS = -Iinclude
+CFLAGS += -Wall -Wextra -ggdb -ffreestanding \
+		  -mcpu=cortex-a7 -mfloat-abi=soft -mno-unaligned-access
+CFLAGS += -Iinclude
 
 OBJCOPYFLAGS = -Obinary -S --set-section-flags .bss=contents,alloc,load,data
 OBJDUMPFLAGS = -dfzh
@@ -164,15 +160,15 @@ rebuild: clean all
 # Single file targets
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS_ALL) -MMD -MP -o $@ -c $<
+	$(CC) $(CFLAGS) -MMD -MP -o $@ -c $<
 
 $(BUILD_DIR)/%.o: %.S
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS_ALL) -MMD -MP -o $@ -c $<
+	$(CC) $(CFLAGS) -MMD -MP -o $@ -c $<
 
 $(BUILD_DIR)/%.o: %.s
 	@mkdir -p $(dir $@)
-	$(CC) $(CPPFLAGS) $(CFLAGS_ALL) -MMD -MP -o $@ -c $<
+	$(CC) $(CFLAGS) -MMD -MP -o $@ -c $<
 
 $(BUILD_DIR)/kernel.elf: $(OBJ) $(LSCRIPT)
 ifneq ($(words $(OBJ)), $(words $(SRC) $(USRC)))

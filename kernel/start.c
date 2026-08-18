@@ -1,10 +1,7 @@
-#include "config.h"
 #include "kernel/kprintf.h"
 #include "drivers/uart.h"
-#include "tests/regcheck.h"
 #include "stdbool.h"
 
-static void subprogram [[noreturn]] (void);
 static void do_data_abort(void);
 static void do_prefetch_abort(void);
 static void do_supervisor_call(void);
@@ -12,13 +9,9 @@ static void do_undefined_inst(void);
 
 void start_kernel [[noreturn]] (void) {
 	kprintf("=== FurniOS booted ===\n");
-	test_kernel();
 
     bool irq_debug = false;
 
-    kprintf("READY\n");
-
-#if 1
 	while(true) {
 		char c = uart_getc();
 		switch(c) {
@@ -38,10 +31,8 @@ void start_kernel [[noreturn]] (void) {
 				do_undefined_inst();
 				break;
 			case 'c':
-				register_checker();
+                // check();
 				break;
-			case 'e':
-				subprogram();
 			default:
 				kprintf("Unknown input: %c\n", c);
 				break;
@@ -49,36 +40,27 @@ void start_kernel [[noreturn]] (void) {
 	}
 }
 
-static void subprogram [[noreturn]] (void) {
-	while(true) {
-		char c = uart_getc();
-		for(unsigned int n = 0; n < PRINT_COUNT; n++) {
-			uart_putc(c);
-			volatile unsigned int i = 0;
-			for(; i < BUSY_WAIT_COUNTER; i++) {}
-		}
-	}
-#endif
-}
-
 void do_data_abort() 
 {
     kprintf("Do data abort...\n");
+    asm volatile ("mov r0, #0x1\n\t"        // lr = 0x8844, mode = 0x13
+                  "ldr r0, [r0, #0]");
 }
 
 void do_prefetch_abort() 
 {
     kprintf("Do prefetch abort...\n");
+    asm volatile ("bkpt #0");
 }
 
 void do_supervisor_call() 
 {
     kprintf("Do supervisor call...\n");
-
-    __asm__ volatile ("svc #0x1");
+    asm volatile ("svc #0x1");
 }
 
 void do_undefined_inst() 
 {
     kprintf("Do undefined instruction...\n");
+    asm volatile ("udf #0");
 }

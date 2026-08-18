@@ -1,38 +1,177 @@
-#include "kernel/kprintf.h"
+#include <kernel/kprintf.h>
+#include <kernel/exception_print.h>
+#include <kernel/log.h>
+#include <stdint.h>
+#include <stdbool.h>
 
-extern void handle_undef();
-extern void handle_svc();
-extern void handle_prefetch_abort();
-extern void handle_data_abort();
-extern void handle_irq();
-extern void handle_fiq();
+// TODO Später in scheduler.h
+typedef struct {
+    uint32_t r[13];
+    uint32_t lr;
+    uint32_t pc;
+    uint32_t sp;
+    uint32_t cpsr;
+} cpu_context_t;
 
-void handle_undef()
+extern uint32_t* handle_undef(uint32_t *sp);
+extern uint32_t* handle_svc(uint32_t *sp);
+extern uint32_t* handle_prefetch_abort(uint32_t *sp);
+extern uint32_t* handle_data_abort(uint32_t *sp);
+extern uint32_t* handle_irq(uint32_t *sp);
+
+static void _save_exception_infos(uint32_t *sp, 
+                                  struct exception_infos *infos)
 {
-    kprintf("Handle undefined behaviour...\n");
+    int reg_offset = 3;  
+
+    infos->exception_source_addr = sp[2] - 4;   // one before $lr 
+    
+    infos->r0     = sp[ 0 + reg_offset];
+    infos->r1     = sp[ 1 + reg_offset];
+    infos->r2     = sp[ 2 + reg_offset];
+    infos->r3     = sp[ 3 + reg_offset];
+    infos->r4     = sp[ 4 + reg_offset];
+    infos->r5     = sp[ 5 + reg_offset];
+    infos->r6     = sp[ 6 + reg_offset];
+    infos->r7     = sp[ 7 + reg_offset];
+    infos->r8     = sp[ 8 + reg_offset];
+    infos->r9     = sp[ 9 + reg_offset];
+    infos->r10    = sp[10 + reg_offset];
+    infos->r11    = sp[11 + reg_offset];
+    infos->r12    = sp[12 + reg_offset];
+
+    asm volatile ("mrc p15, 0, %0, c5, c0, 0"                   
+        : "=r" (infos->data_fault_status_register));             
+    asm volatile ("mrc p15, 0, %0, c6, c0, 0"                   
+        : "=r" (infos->data_fault_address_register));            
+    asm volatile ("mrc p15, 0, %0, c5, c0, 1"                   
+        : "=r" (infos->instruction_fault_status_register));      
+    asm volatile ("mrc p15, 0, %0, c6, c0, 2"
+        : "=r" (infos->instruction_fault_address_register));
 }
 
-void handle_svc()
+[[maybe_unused]] static void _print_stack(uint32_t* sp, int n)
 {
-    kprintf("Handle supervisor call...\n");
+    klog_info("CHANDLER", "Stack from %p to %p\n", (void*) sp, (void*) sp - n);
+    for (int i = 0; i < n; ++i) {
+        kprintf("%08x ", sp[i]);
+        if ((i+1) % 8 == 0) kprintf("\n");
+    }
+    kprintf("\n");
 }
 
-void handle_prefetch_abort()
+[[maybe_unused]] static void _print_cpu_context(cpu_context_t *context)
 {
-    kprintf("Handle prefetch abort...\n");
+    klog_info("CHANDLER", "cpu_context: ");
+    //for (int i = 0; i < 13; ++i) kprintf("r[%d] = %08p\n", i, context->r[i]);
+    kprintf("lr = %08p | pc = %08p | cpsr = %08p\n", context->lr, context->pc, context->cpsr);
 }
 
-void handle_data_abort()
+[[maybe_unused]] static void _save_context(uint32_t *sp, cpu_context_t *context) 
 {
-    kprintf("Handle data abort...\n");
+    int reg_offset = 4;
+
+    context->cpsr   = sp[0];
+    context->sp     = sp[1];
+    context->lr     = sp[2];    // last LR_usr
+    context->pc     = sp[3];    // last PC+4 to jump to
+
+    for (int i = 0; i < 13; ++i) {
+        context->r[i] = sp[i + reg_offset];
+    }
 }
 
-void handle_irq()
+[[maybe_unused]] static void _restore_context(uint32_t *sp, cpu_context_t *context) 
 {
-    kprintf("Handle irq...\n");
+    int reg_offset = 4;
+
+    sp[0] = context->cpsr;
+    sp[1] = context->sp;
+    sp[2] = context->lr;   // LR_usr := syscall_exit() | last PC+4
+    sp[3] = context->pc;   // LR_svc := func() | last PC
+
+    for (int i = 0; i < 13; ++i) {
+        sp[i + reg_offset] = context->r[i];
+    }
 }
 
-void handle_fiq()
+// TODO Assembler muss sp und struct richtig übergeben !!
+uint32_t* handle_undef(uint32_t *sp)
 {
-    kprintf("Handle fiq...\n");
+    struct exception_infos infos = { 0 };          
+    infos.exception_name = "Undefined Instruction";           
+
+    infos.is_data_abort = false;
+    infos.is_prefetch_abort = false;
+
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
+}
+
+uint32_t* handle_svc(uint32_t *sp)
+{
+    struct exception_infos infos = { 0 };          
+    infos.exception_name = "Supervisor Call";           
+
+    infos.is_data_abort = false;
+    infos.is_prefetch_abort = false;
+
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
+}
+
+uint32_t* handle_prefetch_abort(uint32_t *sp)
+{
+    struct exception_infos infos;          
+    infos.exception_name = "Prefetch Abort";           
+
+    infos.is_data_abort = false;
+    infos.is_prefetch_abort = true;
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
+}
+
+uint32_t* handle_data_abort(uint32_t *sp)
+{
+    struct exception_infos infos;          
+    infos.exception_name = "Data abort";           
+
+    infos.is_data_abort = true;
+    infos.is_prefetch_abort = false;
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
+}
+
+uint32_t* handle_irq(uint32_t *sp)
+{
+    struct exception_infos infos;          
+    infos.exception_name = "IRQ";           
+
+    infos.is_data_abort = false;
+    infos.is_prefetch_abort = true;
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
+}
+
+uint32_t* handle_fiq(uint32_t *sp)
+{
+    struct exception_infos infos;          
+    infos.exception_name = "FIQ";           
+
+    infos.is_data_abort = false;
+    infos.is_prefetch_abort = true;
+    _save_exception_infos(sp, &infos);
+    print_exception_infos(&infos);
+
+    return sp;
 }
