@@ -1,7 +1,7 @@
 #include <drivers/status_led.h>
 #include <stddef.h>
 
-#define GPIO_BASE               0x7E200000 - 0x3F000000
+#define GPIO_BASE               (0x7E200000 - 0x3F000000)
 #define STATUS_LED              7u
 #define GPF_BITS                3u
 #define GPF_MASK                0b111u

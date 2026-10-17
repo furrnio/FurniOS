@@ -1,7 +1,8 @@
-#include "kernel/kprintf.h"
-#include "drivers/uart.h"
-#include "drivers/timer.h"
-#include "stdbool.h"
+#include <kernel/kprintf.h>
+#include <drivers/uart.h>
+#include <drivers/status_led.h>
+#include <drivers/timer.h>
+#include <stdbool.h>
 
 bool irq_debug = false;
 
@@ -11,6 +12,9 @@ static void do_supervisor_call(void);
 static void do_undefined_inst(void);
 
 void start_kernel [[noreturn]] (void) {
+
+    status_on();
+    kprintf("Status led switched on...\n");
 
     timer_init();
     kprintf("Timer initialized...\n");
