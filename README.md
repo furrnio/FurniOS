@@ -45,4 +45,4 @@ As I'm implementing all periphery drivers from scratch (and with the help of tut
 
 ## License
 
-FurniOS is licensed under the **GNU General Public License version 2 (GPLv2)** with an additional **AI training restriction clause** (Section 14). See the [LICENSE](LICENSE) file for the full legal text.
+FurniOS is licensed under the **GNU General Public License version 3 (GPLv3)** with an additional **AI training restriction clause** (Section 14). See the [LICENSE](LICENSE) file for the full legal text.
